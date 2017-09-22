@@ -1,34 +1,31 @@
-#[derive(Clone, Debug)]
-enum Event {
-    Name(String),
+trait Event {
+    fn show(&self);
 }
 
-impl Event {
+impl Event for String {
     fn show(&self) {
-        match *self {
-            Event::Name(ref s) => println!("{}", s)
-        }
+        println!("{}", *self)
     }
 }
 
-#[derive(Clone, Debug)]
-enum Process {
+enum Process<'a> {
     Stop,
     Skip,
-    Prefix { ev: Event, p: Box<Process> },
+    Prefix { ev: Box<Event + 'a>, p: Box<Process<'a>> },
 }
 
-impl Process {
-    pub fn stop() -> Process {
+impl<'a> Process<'a> {
+    pub fn stop() -> Process<'a> {
         Process::Stop
     }
 
-    pub fn skip() -> Process {
+    pub fn skip() -> Process<'a> {
         Process::Skip
     }
 
-    pub fn prefix(ev: &Event, p: Process) -> Process {
-        Process::Prefix { ev: ev.clone(), p: Box::new(p) }
+    pub fn prefix<'b, T>(ev: T, p: Process<'b>) -> Process<'b>
+        where T: Event + 'b {
+        Process::Prefix { ev: Box::new(ev), p: Box::new(p) }
     }
 
     pub fn run(&self) {
@@ -49,6 +46,7 @@ mod tests {
     use super::*;
     #[test]
     fn it_works() {
-        Process::prefix(&Event::Name("e".to_string()), Process::skip()).run()
+        let p = Process::prefix("e".to_string(), Process::skip());
+        p.run();
     }
 }
